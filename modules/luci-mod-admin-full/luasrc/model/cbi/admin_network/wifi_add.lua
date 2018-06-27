@@ -42,18 +42,23 @@ m.hidden = {
 	wpa_version = http.formvalue("wpa_version")
 }
 
-if iw and iw.mbssid_support then
-	replace = m:field(Flag, "replace", translate("Replace wireless configuration"),
-		translate("An additional network will be created if you leave this unchecked."))
+-- Special for Widora
+replace = m:field(DummyValue, "replace", translate("Repeater wireless configuration"))
+replace.default = translate("Configurate wireless for Widora repeater interface.")
+function replace.formvalue() return "1" end
 
-	function replace.cfgvalue() return "1" end
-else
-	replace = m:field(DummyValue, "replace", translate("Replace wireless configuration"))
-	replace.default = translate("The hardware is not multi-SSID capable and the existing " ..
-		"configuration will be replaced if you proceed.")
+-- if iw and iw.mbssid_support then
+-- 	replace = m:field(Flag, "replace", translate("Replace wireless configuration"),
+-- 		translate("An additional network will be created if you leave this unchecked."))
 
-	function replace.formvalue() return "1" end
-end
+-- 	function replace.cfgvalue() return "1" end
+-- else
+-- 	replace = m:field(DummyValue, "replace", translate("Replace wireless configuration"))
+-- 	replace.default = translate("The hardware is not multi-SSID capable and the existing " ..
+-- 		"configuration will be replaced if you proceed.")
+
+-- 	function replace.formvalue() return "1" end
+-- end
 
 if http.formvalue("wep") == "1" then
 	key = m:field(Value, "key", translate("WEP passphrase"),
@@ -110,12 +115,12 @@ function newnet.parse(self, section)
 	wdev:set("disabled", false)
 	wdev:set("channel", m.hidden.channel)
 
-	if replace:formvalue(section) then
-		local n
-		for _, n in ipairs(wdev:get_wifinets()) do
-			wdev:del_wifinet(n)
-		end
-	end
+	-- if replace:formvalue(section) then
+	-- 	local n
+	-- 	for _, n in ipairs(wdev:get_wifinets()) do
+	-- 		wdev:del_wifinet(n)
+	-- 	end
+	-- end
 
 	local wconf = {
 		device  = m.hidden.device,
@@ -146,19 +151,26 @@ function newnet.parse(self, section)
 	else
 		wconf.network = net:name()
 
-		local wnet = wdev:add_wifinet(wconf)
-		if wnet then
-			if zone then
-				fw:del_network(net:name())
-				zone:add_network(net:name())
-			end
+		-- local wnet = wdev:add_wifinet(wconf)
+		-- if wnet then
+		-- 	if zone then
+		-- 		fw:del_network(net:name())
+		-- 		zone:add_network(net:name())
+		-- 	end
 
-			uci:save("wireless")
-			uci:save("network")
-			uci:save("firewall")
+		-- 	uci:save("wireless")
+		-- 	uci:save("network")
+		-- 	uci:save("firewall")
 
-			luci.http.redirect(wnet:adminlink())
-		end
+		-- 	luci.http.redirect(wnet:adminlink())
+		-- end
+		uci:set("wireless", "sta", "ssid", wconf.ssid)
+		uci:set("wireless", "sta", "key", wconf.key)
+		uci:set("wireless", "sta", "encryption", wconf.encryption)
+		uci:save("wireless")
+		uci:save("network")
+		uci:save("firewall")
+		luci.http.redirect("wireless/radio0.network2")
 	end
 end
 
